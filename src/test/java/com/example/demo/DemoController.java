@@ -1,43 +1,68 @@
-// ControllerTest.java
 package com.example.demo;
 
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import java.util.List;
-import static org.assertj.core.api.Assertions.assertThat; // For fluent assertions [cite: 150, 186]
 
-// Loads the full Spring context for testing [cite: 153, 180]
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * Integration Test for the StudentRepository functionality.
+ * Uses the H2 in-memory database configured in src/test/resources/application.properties.
+ */
 @SpringBootTest
-// Ensures tests run in a defined order [cite: 154, 185]
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ControllerTest {
 
-    // Injects the repository bean [cite: 156, 182]
+    // Inject the repositories required for data manipulation
     @Autowired
-    private StudentRepository studentRepository; // [cite: 157]
+    private StudentRepository studentRepository; 
+    
+    @Autowired 
+    private UniversityRepository universityRepository; 
 
+    /**
+     * Test case 1: Verifies that a Student can be saved successfully.
+     * This test must run first to populate the database for the next test.
+     */
     @Test
-    @Order(1) // Runs first [cite: 159]
+    @Order(1)
     void shouldSaveStudent() {
-        Student student = new Student(); // [cite: 162, 163]
-        student.setName("Charlie"); // [cite: 164]
-        student.setAddress("Algeria"); // [cite: 165]
-        
-        studentRepository.save(student); // Saves to the H2 database [cite: 166]
+        // --- FIX FOR DATAINTEGRITYEXCEPTION ---
+        // 1. Create and save the mandatory dependency (University) first
+        University university = new University();
+        university.setName("USTO-MB");
+        universityRepository.save(university); 
 
-        // Assert that exactly one record exists [cite: 167, 168]
+        // 2. Create the student and link the saved university object
+        Student student = new Student(); 
+        student.setName("Charlie"); 
+        student.setAddress("Algeria");
+        student.setUniversity(university); 
+
+        // 3. Save the student
+        studentRepository.save(student);
+
+        // Assertion: Check that exactly one record exists in the database
         assertThat(studentRepository.count()).isEqualTo(1);
     }
 
+    /**
+     * Test case 2: Verifies that all students can be retrieved.
+     * This depends on the record saved in shouldSaveStudent().
+     */
     @Test
-    @Order(2) // Runs second [cite: 170]
+    @Order(2)
     void shouldFindAllStudents() {
-        // Fetch all students [cite: 171, 172]
+        // Fetch all students from the repository
         List<Student> students = studentRepository.findAll();
 
-        // Assertions [cite: 173]
+        // Assertion 1: Check that the list contains exactly one student
         assertThat(students).hasSize(1);
-        assertThat(students.get(0).getName()).isEqualTo("Charlie"); // [cite: 177, 178]
+        
+        // Assertion 2: Check that the retrieved student's name is correct
+        assertThat(students.get(0).getName()).isEqualTo("Charlie");
     }
 }
